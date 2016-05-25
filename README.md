@@ -44,3 +44,6 @@ The API exposes endpoints used to access information form the system via a RESTf
 
 ### Docs Deployment
 Changes to `master` branch are automatically deployed via Travis to https://oam-uploader-api.herokuapp.com.
+
+## License
+Oam Uploader Api is licensed under **BSD 3-Clause License**, see the [LICENSE](LICENSE) file for more details.
