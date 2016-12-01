@@ -16,8 +16,8 @@ module.exports = [
 
       handler: function (request, reply) {
         var data = request.payload;
-        if (data.filefield.hapi.filename) {
-          var name = data.filefield.hapi.filename;
+        if (data.file.hapi.filename) {
+          var name = data.file.hapi.filename;
           var outPath = path.join(__dirname, '../uploads', name);
           var file = fs.createWriteStream(outPath);
 
@@ -25,12 +25,12 @@ module.exports = [
             console.error(err);
           });
 
-          data.filefield.pipe(file);
+          data.file.pipe(file);
 
-          data.filefield.on('end', function (err) {
+          data.file.on('end', function (err) {
             var ret = {
-              filename: data.filefield.hapi.filename,
-              headers: data.filefield.hapi.headers
+              filename: data.file.hapi.filename,
+              headers: data.file.hapi.headers
             };
             console.log(data);
             reply(JSON.stringify(ret));
