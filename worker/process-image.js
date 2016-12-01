@@ -38,41 +38,57 @@ function _processImage (s3, scene, url, key, cb) {
     }
 
     var downloadStatus;
+    var upload;
     var stream;
+    var messages = [];
+    // Open local read stream if file was uploaded
     if (url.includes("file://")) {
-      var upload = './uploads/' + urlTools.parse(url).host;
+      upload = './uploads/' + urlTools.parse(url).host;
       log(['debug'], 'Transferring ' + upload + ' to ' + path);
       stream = fs.createReadStream(upload);
     } else {
+      // Open a download stream if file is remote
       log(['debug'], 'Downloading ' + url + ' to ' + path);
       stream = request(url);
       stream.on('response', function (resp) { downloadStatus = resp.statusCode; });
       stream.on('error', callback);
     }
 
+    // Write the stream
     stream
     .pipe(fs.createWriteStream(path))
     .on('finish', function () {
       if (downloadStatus < 200 || downloadStatus >= 400) {
         return callback(new Error('Could not download ' + url +
          '; server responded with status code ' + downloadStatus));
-        }
-
-        var messages = [];
-        // we've successfully downloaded the file.  now do stuff with it.
-        generateMetadata(scene, path, key, function (err, metadata) {
-          if (err) { return callback(err); }
-          makeThumbnail(path, function (thumbErr, thumbPath) {
-            if (thumbErr) {
-              messages.push('Could not generate thumbnail: ' + thumbErr.message);
-              thumbPath = null;
-            }
-            uploadToS3(s3, path, key, metadata, thumbPath, function (err) {
-              callback(err, { metadata: metadata, messages: messages });
-            });
+      }
+      // Cleanup local files
+      if (url.includes("file://")) {
+        fs.stat(upload, function (err, stats) {
+          if (err) {
+            return callback(err);
+          }
+          log(['debug'], 'Cleaning up uploaded file: ', upload);
+          fs.unlink(upload, function (err){
+            if (err) return callback(err);
           });
         });
-      })
+      }
+
+      // we've successfully downloaded the file.  now do stuff with it.
+      generateMetadata(scene, path, key, function (err, metadata) {
+        if (err) { return callback(err); }
+        makeThumbnail(path, function (thumbErr, thumbPath) {
+          if (thumbErr) {
+            messages.push('Could not generate thumbnail: ' + thumbErr.message);
+            thumbPath = null;
+          }
+          uploadToS3(s3, path, key, metadata, thumbPath, function (err) {
+            callback(err, { metadata: metadata, messages: messages });
+          });
+        });
+      });
+    })
     .on('error', callback);
   });
 }
