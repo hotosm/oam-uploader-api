@@ -6,6 +6,7 @@ var promisify = require('es6-promisify');
 var request = require('request');
 var queue = require('queue-async');
 var gdalinfo = require('gdalinfo-json');
+var urlTools = require('url');
 var applyGdalinfo = require('oam-meta-generator/lib/apply-gdalinfo');
 var sharp = require('sharp');
 var log = require('./log');
@@ -36,34 +37,42 @@ function _processImage (s3, scene, url, key, cb) {
       url = `https://www.googleapis.com/drive/v3/files/${pieces[1]}?alt=media&key=${config.gdriveKey}`;
     }
 
-    log(['debug'], 'Downloading ' + url + ' to ' + path);
-
     var downloadStatus;
-    request(url)
-    .on('response', function (resp) { downloadStatus = resp.statusCode; })
-    .on('error', callback)
+    var stream;
+    if (url.includes("file://")) {
+      var upload = './uploads/' + urlTools.parse(url).host;
+      log(['debug'], 'Transferring ' + upload + ' to ' + path);
+      stream = fs.createReadStream(upload);
+    } else {
+      log(['debug'], 'Downloading ' + url + ' to ' + path);
+      stream = request(url);
+      stream.on('response', function (resp) { downloadStatus = resp.statusCode; });
+      stream.on('error', callback);
+    }
+
+    stream
     .pipe(fs.createWriteStream(path))
     .on('finish', function () {
       if (downloadStatus < 200 || downloadStatus >= 400) {
         return callback(new Error('Could not download ' + url +
          '; server responded with status code ' + downloadStatus));
-      }
+        }
 
-      var messages = [];
-      // we've successfully downloaded the file.  now do stuff with it.
-      generateMetadata(scene, path, key, function (err, metadata) {
-        if (err) { return callback(err); }
-        makeThumbnail(path, function (thumbErr, thumbPath) {
-          if (thumbErr) {
-            messages.push('Could not generate thumbnail: ' + thumbErr.message);
-            thumbPath = null;
-          }
-          uploadToS3(s3, path, key, metadata, thumbPath, function (err) {
-            callback(err, { metadata: metadata, messages: messages });
+        var messages = [];
+        // we've successfully downloaded the file.  now do stuff with it.
+        generateMetadata(scene, path, key, function (err, metadata) {
+          if (err) { return callback(err); }
+          makeThumbnail(path, function (thumbErr, thumbPath) {
+            if (thumbErr) {
+              messages.push('Could not generate thumbnail: ' + thumbErr.message);
+              thumbPath = null;
+            }
+            uploadToS3(s3, path, key, metadata, thumbPath, function (err) {
+              callback(err, { metadata: metadata, messages: messages });
+            });
           });
         });
-      });
-    })
+      })
     .on('error', callback);
   });
 }
@@ -169,4 +178,3 @@ function makeThumbnail (imagePath, callback) {
 function publicUrl (bucketName, key) {
   return 'http://' + bucketName + '.s3.amazonaws.com/' + key;
 }
-
