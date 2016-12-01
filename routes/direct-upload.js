@@ -7,7 +7,7 @@ module.exports = [
     method: 'POST',
     path: '/direct-upload',
     config: {
-
+      auth: 'api-token',
       payload: {
         output: 'stream',
         parse: true,
