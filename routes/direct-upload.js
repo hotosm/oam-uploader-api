@@ -32,7 +32,6 @@ module.exports = [
               filename: data.file.hapi.filename,
               headers: data.file.hapi.headers
             };
-            console.log(data);
             reply(JSON.stringify(ret));
           });
         }
