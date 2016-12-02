@@ -9,6 +9,7 @@ module.exports = [
     config: {
       auth: 'api-token',
       payload: {
+        maxBytes: 5368709120,
         output: 'stream',
         parse: true,
         allow: 'multipart/form-data'
