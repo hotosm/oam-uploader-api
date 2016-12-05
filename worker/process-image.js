@@ -7,6 +7,7 @@ var request = require('request');
 var queue = require('queue-async');
 var gdalinfo = require('gdalinfo-json');
 var urlTools = require('url');
+var pathTools = require('path');
 var applyGdalinfo = require('oam-meta-generator/lib/apply-gdalinfo');
 var sharp = require('sharp');
 var log = require('./log');
@@ -43,7 +44,8 @@ function _processImage (s3, scene, url, key, cb) {
     var messages = [];
     // Open local read stream if file was uploaded
     if (url.includes("file://")) {
-      upload = './uploads/' + urlTools.parse(url).host;
+      upload = pathTools.join(__dirname, '../', 'uploads', urlTools.parse(url).host);
+      log(['debug'], 'upload       '+ upload)
       log(['debug'], 'Transferring ' + upload + ' to ' + path);
       stream = fs.createReadStream(upload);
     } else {
@@ -64,14 +66,9 @@ function _processImage (s3, scene, url, key, cb) {
       }
       // Cleanup local files
       if (url.includes("file://")) {
-        fs.stat(upload, function (err, stats) {
-          if (err) {
-            return callback(err);
-          }
-          log(['debug'], 'Cleaning up uploaded file: ', upload);
-          fs.unlink(upload, function (err){
-            if (err) return callback(err);
-          });
+        log(['debug'], 'Cleaning up uploaded file: ', upload);
+        fs.unlink(upload, function (err){
+          if (err) return callback(err);
         });
       }
 
