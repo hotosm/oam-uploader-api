@@ -45,7 +45,6 @@ function _processImage (s3, scene, url, key, cb) {
     // Open local read stream if file was uploaded
     if (url.includes("file://")) {
       upload = pathTools.join(__dirname, '../', 'uploads', urlTools.parse(url).host);
-      log(['debug'], 'upload       '+ upload)
       log(['debug'], 'Transferring ' + upload + ' to ' + path);
       stream = fs.createReadStream(upload);
     } else {
@@ -64,7 +63,7 @@ function _processImage (s3, scene, url, key, cb) {
         return callback(new Error('Could not download ' + url +
          '; server responded with status code ' + downloadStatus));
       }
-      // Cleanup local files
+      // Cleanup local files if direct upload
       if (url.includes("file://")) {
         log(['debug'], 'Cleaning up uploaded file: ', upload);
         fs.unlink(upload, function (err){
