@@ -29,6 +29,7 @@ module.exports = [
           data.file.pipe(file);
 
           data.file.on('end', function (err) {
+            console.log(err);
             var ret = {
               filename: data.file.hapi.filename,
               headers: data.file.hapi.headers

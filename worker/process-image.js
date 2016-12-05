@@ -43,7 +43,7 @@ function _processImage (s3, scene, url, key, cb) {
     var stream;
     var messages = [];
     // Open local read stream if file was uploaded
-    if (url.includes("file://")) {
+    if (url.includes('file://')) {
       upload = pathTools.join(__dirname, '../', 'uploads', urlTools.parse(url).host);
       log(['debug'], 'Transferring ' + upload + ' to ' + path);
       stream = fs.createReadStream(upload);
@@ -64,9 +64,9 @@ function _processImage (s3, scene, url, key, cb) {
          '; server responded with status code ' + downloadStatus));
       }
       // Cleanup local files if direct upload
-      if (url.includes("file://")) {
+      if (url.includes('file://')) {
         log(['debug'], 'Cleaning up uploaded file: ', upload);
-        fs.unlink(upload, function (err){
+        fs.unlink(upload, function (err) {
           if (err) return callback(err);
         });
       }
