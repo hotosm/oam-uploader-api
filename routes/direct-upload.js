@@ -18,7 +18,7 @@ module.exports = [
       handler: function (request, reply) {
         var data = request.payload;
         if (data.file.hapi.filename) {
-          var outPath = path.join(__dirname, '../uploads', data['new-name']);
+          var outPath = path.join(__dirname, '../uploads', data.newName);
           var file = fs.createWriteStream(outPath);
 
           file.on('error', function (err) {
