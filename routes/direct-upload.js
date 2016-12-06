@@ -18,8 +18,7 @@ module.exports = [
       handler: function (request, reply) {
         var data = request.payload;
         if (data.file.hapi.filename) {
-          var name = data.file.hapi.filename;
-          var outPath = path.join(__dirname, '../uploads', name);
+          var outPath = path.join(__dirname, '../uploads', data['new-name']);
           var file = fs.createWriteStream(outPath);
 
           file.on('error', function (err) {
@@ -29,7 +28,9 @@ module.exports = [
           data.file.pipe(file);
 
           data.file.on('end', function (err) {
-            console.log(err);
+            if (err) {
+              console.log(err);
+            }
             var ret = {
               filename: data.file.hapi.filename,
               headers: data.file.hapi.headers
