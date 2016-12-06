@@ -6,7 +6,6 @@ var promisify = require('es6-promisify');
 var request = require('request');
 var queue = require('queue-async');
 var gdalinfo = require('gdalinfo-json');
-var urlTools = require('url');
 var pathTools = require('path');
 var applyGdalinfo = require('oam-meta-generator/lib/apply-gdalinfo');
 var sharp = require('sharp');
@@ -44,7 +43,7 @@ function _processImage (s3, scene, url, key, cb) {
     var messages = [];
     // Open local read stream if file was uploaded
     if (url.includes('file://')) {
-      upload = pathTools.join(__dirname, '../', 'uploads', urlTools.parse(url).host);
+      upload = pathTools.join(__dirname, '../', 'uploads', url.replace('file://', ''));
       log(['debug'], 'Transferring ' + upload + ' to ' + path);
       stream = fs.createReadStream(upload);
     } else {
@@ -52,11 +51,11 @@ function _processImage (s3, scene, url, key, cb) {
       log(['debug'], 'Downloading ' + url + ' to ' + path);
       stream = request(url);
       stream.on('response', function (resp) { downloadStatus = resp.statusCode; });
-      stream.on('error', callback);
     }
 
     // Write the stream
     stream
+    .on('error', callback)
     .pipe(fs.createWriteStream(path))
     .on('finish', function () {
       if (downloadStatus < 200 || downloadStatus >= 400) {
