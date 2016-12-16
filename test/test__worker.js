@@ -7,7 +7,6 @@ var ecstatic = require('ecstatic');
 var sharp = require('sharp');
 var MongoClient = require('mongodb').MongoClient;
 var omit = require('omit-deep');
-var path = require('path');
 var JobQueue = require('../worker/queue');
 var config = require('../config');
 var api = require('../');
@@ -36,7 +35,7 @@ suite('test worker', function () {
       db.dropDatabase(function (err) {
         if (err) { return done(err); }
         // serve up our test fixtures to be downloaded
-        server = http.createServer(ecstatic({ root: path.join(__dirname, 'fixture') }))
+        server = http.createServer(ecstatic({ root: __dirname + '/fixture' }))
         .on('listening', function () { done(); })
         .on('error', done);
         server.listen(8080);
