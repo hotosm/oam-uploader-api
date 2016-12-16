@@ -41,14 +41,15 @@ function _processImage (s3, scene, url, key, cb) {
     var upload;
     var stream;
     var messages = [];
+
     // Open local read stream if file was uploaded
-    if (url.includes('file://')) {
+    if (url.substring(0, 7) === 'file://') {
       upload = pathTools.join(__dirname, '../', 'uploads', url.replace('file://', ''));
       log(['debug'], 'Transferring ' + upload + ' to ' + path);
       stream = fs.createReadStream(upload);
     } else {
       // Open a download stream if file is remote
-      log(['debug'], 'Downloading ' + url + ' to ' + path);
+      log(['debug'], 'Downloading ', url, ' to ', path);
       stream = request(url);
       stream.on('response', function (resp) { downloadStatus = resp.statusCode; });
     }
@@ -63,7 +64,7 @@ function _processImage (s3, scene, url, key, cb) {
          '; server responded with status code ' + downloadStatus));
       }
       // Cleanup local files if direct upload
-      if (url.includes('file://')) {
+      if (url.substring(0, 7) === 'file://') {
         log(['debug'], 'Cleaning up uploaded file: ', upload);
         fs.unlink(upload, function (err) {
           if (err) return callback(err);
@@ -75,7 +76,7 @@ function _processImage (s3, scene, url, key, cb) {
         if (err) { return callback(err); }
         makeThumbnail(path, function (thumbErr, thumbPath) {
           if (thumbErr) {
-            messages.push('Could not generate thumbnail: ' + thumbErr.message);
+            messages.push('Could not generate thumbnail: ', thumbErr.message);
             thumbPath = null;
           }
           uploadToS3(s3, path, key, metadata, thumbPath, function (err) {
