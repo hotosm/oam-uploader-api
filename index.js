@@ -70,6 +70,6 @@ var OAMUploader = function (readyCb) {
       readyCb(hapi);
     });
   });
-};
+}
 
 module.exports = OAMUploader;
