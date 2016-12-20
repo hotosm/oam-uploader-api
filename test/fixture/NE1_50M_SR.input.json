@@ -16,6 +16,8 @@
       "acquisition_start": "2015-04-01T00:00:00.000",
       "acquisition_end": "2015-04-30T00:00:00.000",
       "tms": null,
+      "license": "MIT",
+      "tags": "tropical, paradise",
       "urls": [
         "http://localhost:8080/NE1_50M_SR.tif"
       ]
