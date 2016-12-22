@@ -180,6 +180,8 @@ function generateMetadata (scene, path, key, callback) {
       platform: scene.platform,
       provider: scene.provider,
       contact: [scene.contact.name.replace(',', ';'), scene.contact.email].join(','),
+      license: scene.license,
+      tags: scene.tags,
       properties: {
         tms: scene.tms,
         sensor: scene.sensor
