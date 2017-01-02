@@ -151,8 +151,7 @@ function translateImage (ext, path, tifPath, callback) {
     '-co', 'PREDICTOR=2',
     '-co', 'SPARSE_OK=yes',
     '-co', 'BLOCKXSIZE=512',
-    '-co', 'BLOCKYSIZE=512',
-    '-co', 'NUM_THREADS=ALL_CPUS'
+    '-co', 'BLOCKYSIZE=512'
   ];
 
   cp.execFile(config.gdalTranslateBin, args, function (err, stdout, stderr) {
