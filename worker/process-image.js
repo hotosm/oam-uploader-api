@@ -146,7 +146,6 @@ function translateImage (ext, path, tifPath, callback) {
   var args = [
     '-of', 'GTiff',
     path, tifPath,
-    '-co', 'TILED=yes',
     '-co', 'COMPRESS=DEFLATE',
     '-co', 'PREDICTOR=2',
     '-co', 'SPARSE_OK=yes',
