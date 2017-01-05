@@ -3,6 +3,7 @@
 var Lab = require('lab');
 var chai = require('chai');
 var http = require('http');
+var path = require('path');
 var ecstatic = require('ecstatic');
 var sharp = require('sharp');
 var MongoClient = require('mongodb').MongoClient;
@@ -35,7 +36,7 @@ suite('test worker', function () {
       db.dropDatabase(function (err) {
         if (err) { return done(err); }
         // serve up our test fixtures to be downloaded
-        server = http.createServer(ecstatic({ root: __dirname + '/fixture' }))
+        server = http.createServer(ecstatic({ root: path.join(__dirname, '/fixture') }))
         .on('listening', function () { done(); })
         .on('error', done);
         server.listen(8080);

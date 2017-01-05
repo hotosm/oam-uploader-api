@@ -9,7 +9,6 @@ var queue = require('queue-async');
 var gdalinfo = require('gdalinfo-json');
 var pathTools = require('path');
 var applyGdalinfo = require('oam-meta-generator/lib/apply-gdalinfo');
-var sharp = require('sharp');
 var log = require('./log');
 var config = require('../config');
 
@@ -88,7 +87,7 @@ function _processImage (s3, scene, url, key, cb) {
 
           generateMetadata(scene, path, key, function (err, metadata) {
             if (err) { return callback(err); }
-            makeThumbnail(path, function (thumbErr, thumbPath) {
+            makeThumbnail(path, metadata, function (thumbErr, thumbPath, metadata) {
               if (thumbErr) {
                 messages.push('Could not generate thumbnail: ' + thumbErr.message);
               }
@@ -192,36 +191,49 @@ function generateMetadata (scene, path, key, callback) {
       // set uuid after doing applyGdalinfo because it actually sets it to
       // gdaldata.url, which for us is blank since we used gdalinfo.local
       metadata.uuid = publicUrl(s3bucket, key);
+      // temporarily attach width and height attributes to metadata
+      metadata.width = gdaldata.width;
+      metadata.height = gdaldata.height;
       log(['debug'], 'Generated metadata: ', metadata);
       callback(null, metadata);
     });
   });
 }
 
-function makeThumbnail (imagePath, callback) {
-  tmp.file({ postfix: '.png' }, function (err, path, fd) {
-    if (err) { return callback(err); }
-    log(['debug'], 'Generating thumbnail', path);
+function makeThumbnail (tifPath, metadata, callback) {
+  if (!config.gdalTranslateBin) {
+    throw new Error('GDAL bin path missing.');
+  }
 
-    var original = sharp(imagePath)
-      // upstream: https://github.com/lovell/sharp/issues/250
-      .limitInputPixels(2147483647)
-      .sequentialRead();
-    original
-    .metadata()
-    .then(function (metadata) {
-      var pixelArea = metadata.width * metadata.height;
-      var ratio = Math.sqrt(targetPixelArea / pixelArea);
-      log(['debug'], 'Generating thumbnail, targetPixelArea=' + targetPixelArea);
-      original
-      .resize(Math.round(ratio * metadata.width))
-      .toFile(path)
-      .then(function () {
-        log(['debug'], 'Finished generating thumbnail');
-        callback(null, path);
-      });
-    })
-    .catch(callback);
+  tmp.file({ postfix: '.thumb.png' }, function (err, thumbPath, fd) {
+    if (err) { return callback(err); }
+    log(['debug'], 'Generating thumbnail, targetPixelArea=' + targetPixelArea);
+
+    var pixelArea = metadata.width * metadata.height;
+    var ratio = Math.sqrt(targetPixelArea / pixelArea);
+    var width = Math.round(metadata.width * ratio).toString();
+    var height = Math.round(metadata.height * ratio).toString();
+
+    // remove temporary width and height attributes from metadata
+    delete metadata.width;
+    delete metadata.height;
+
+    var args = [
+      '-of', 'png',
+      tifPath, thumbPath,
+      '-b', '3',
+      '-b', '2',
+      '-b', '1',
+      '-outsize', width, height
+    ];
+
+    cp.execFile(config.gdalTranslateBin, args, function (err, stdout, stderr) {
+      if (err) {
+        return callback(err);
+      }
+      log(['debug'], 'Finished generating thumbnail');
+      return callback(null, thumbPath, metadata);
+    });
   });
 }
 
