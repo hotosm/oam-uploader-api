@@ -145,6 +145,7 @@ function translateImage (ext, path, tifPath, callback) {
   var args = [
     '-of', 'GTiff',
     path, tifPath,
+    '-co', 'TILED=yes',
     '-co', 'COMPRESS=DEFLATE',
     '-co', 'PREDICTOR=2',
     '-co', 'SPARSE_OK=yes',
@@ -221,9 +222,9 @@ function makeThumbnail (tifPath, metadata, callback) {
     var args = [
       '-of', 'png',
       tifPath, thumbPath,
-      '-b', '3',
-      '-b', '2',
       '-b', '1',
+      '-b', '2',
+      '-b', '3',
       '-outsize', width, height
     ];
 
