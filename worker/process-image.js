@@ -216,7 +216,7 @@ function makeThumbnail (tifPath, metadata, callback) {
 
     var args = [
       '-of', 'png',
-      thumbPath, tifPath,
+      tifPath, thumbPath,
       '-b', '3',
       '-b', '2',
       '-b', '1',
@@ -224,6 +224,8 @@ function makeThumbnail (tifPath, metadata, callback) {
     ];
 
     cp.execFile(config.gdalTranslateBin, args, function (err, stdout, stderr) {
+      console.log('metadata:');
+      console.log('err:\n', err, 'stdout:\n', stdout, 'stderr:\n', stderr);
       if (err) {
         return callback(err);
       }
