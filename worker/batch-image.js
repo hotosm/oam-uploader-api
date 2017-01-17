@@ -32,13 +32,13 @@ function _processImage (aws, scene, url, targetPrefix, callback) {
   var batch = new aws.Batch();
   var s3 = new aws.S3();
 
-  // TODO use async.waterfall
-  return queueTranscodeJob(batch, url, targetPrefix, function (err) {
+  // TODO use async.waterfall + async.parallel
+  return generateMetadata(scene, url, targetPrefix, function (err, metadata) {
     if (err) {
       return callback(err);
     }
 
-    return generateMetadata(scene, url, targetPrefix, function (err, metadata) {
+    return queueTranscodeJob(batch, url, targetPrefix, metadata, function (err) {
       if (err) {
         return callback(err);
       }
@@ -60,11 +60,19 @@ function uploadMetadata (s3, targetPrefix, metadata, callback) {
   }, callback);
 }
 
-function queueTranscodeJob (batch, input, output, callback) {
+function queueTranscodeJob (batch, input, output, meta, callback) {
   return batch.submitJob({
     jobDefinition: jobDefinition,
     jobName: 'transcode-' + new Date().toISOString(),
-    jobQueue: jobQueue
+    jobQueue: jobQueue,
+    parameters: {
+      input: input,
+      output: output
+    },
+    containerOverrides: {
+      // scale memory to 200% of the source image's file size
+      memory: Math.max(3000, Math.ceil(meta.file_size / (1024 * 1024) * 2))
+    }
   }, callback);
 }
 
