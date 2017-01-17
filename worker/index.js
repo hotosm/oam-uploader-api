@@ -19,8 +19,7 @@ AWS.config = {
   sslEnabled: true
 };
 
-var s3 = new AWS.S3();
-var queue = new JobQueue(s3);
+var queue = new JobQueue(AWS);
 
 onExit(function () {
   queue.cleanup()

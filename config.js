@@ -34,7 +34,8 @@ var defaults = {
         log: '*'
       }
     }]
-  }
+  },
+  useBatch: false // use AWS Batch to process images
 };
 
 // Environment variable overrides
@@ -52,7 +53,10 @@ var environment = {
   sendgridApiKey: process.env.SENDGRID_API_KEY,
   sendgridFrom: process.env.SENDGRID_FROM,
   gdalTranslateBin: process.env.GDAL_TRANSLATE_BIN,
-  gdriveKey: process.env.GDRIVE_KEY
+  gdriveKey: process.env.GDRIVE_KEY,
+  jobDefinition: process.env.JOB_DEFINITION,
+  jobQueue: process.env.JOB_QUEUE,
+  useBatch: process.env.USE_BATCH === 'true'
 };
 
 var config = xtend(defaults);

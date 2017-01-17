@@ -6,11 +6,15 @@ var processImage = require('./process-image');
 var log = require('./log');
 var config = require('../config');
 
+if (config.useBatch) {
+  processImage = require('./batch-image');
+}
+
 module.exports = JobQueue;
 
-function JobQueue (s3) {
-  if (!(this instanceof JobQueue)) { return new JobQueue(s3); }
-  this.s3 = s3;
+function JobQueue (aws) {
+  if (!(this instanceof JobQueue)) { return new JobQueue(aws); }
+  this.aws = aws;
 }
 
 JobQueue.prototype.run = function () {
@@ -99,7 +103,7 @@ JobQueue.prototype._mainloop = function mainloop () {
 
     // we got a job!
     var image = result.value;
-    var s3 = this.s3;
+    var aws = this.aws;
     log(['info'], 'Processing job', image);
     return this.db.collection('uploads')
     // find the upload / scene that contains this image
@@ -120,7 +124,7 @@ JobQueue.prototype._mainloop = function mainloop () {
       throw new Error('Could not find the scene for image ' + image._id);
     })
     .then((processed) => {
-      // mark the job as finished
+      // mark the job as finished OR processing (depending on the processImage implementation)
       return this.images.findOneAndUpdate(result.value, this.update.jobFinished(processed));
     })
     .then(() => {
