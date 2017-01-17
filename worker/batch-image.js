@@ -104,7 +104,8 @@ function generateMetadata (scene, url, key, callback) {
       properties: {
         tms: scene.tms,
         sensor: scene.sensor
-      }
+      },
+      uploaded_at: new Date()
     };
 
     return gdalinfo.remote(url, function (err, gdaldata) {
