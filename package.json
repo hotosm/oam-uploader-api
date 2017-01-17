@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/hotosm/oam-uploader-api",
   "dependencies": {
-    "aws-sdk": "^2.1.44",
+    "aws-sdk": "^2.7.14",
     "babel": "^5.8.21",
     "boom": "^2.8.0",
     "es6-promise": "^2.3.0",
