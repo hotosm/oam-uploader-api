@@ -108,6 +108,10 @@ function generateMetadata (scene, url, key, callback) {
       uploaded_at: new Date()
     };
 
+    if (config.dynamicTMS) {
+      metadata.properties.tms = config.tmsPrefix + key + '/{z}/{x}/{y}.png';
+    }
+
     return gdalinfo.remote(url, function (err, gdaldata) {
       if (err) {
         return callback(err);

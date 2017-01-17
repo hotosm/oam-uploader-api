@@ -171,6 +171,10 @@ function generateMetadata (scene, path, key, callback) {
       uploaded_at: new Date()
     };
 
+    if (config.dynamicTMS) {
+      metadata.properties.tms = config.tmsPrefix + key + '/{z}/{x}/{y}.png';
+    }
+
     gdalinfo.local(path, function (err, gdaldata) {
       if (err) { return callback(err); }
       applyGdalinfo(metadata, gdaldata);

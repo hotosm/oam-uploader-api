@@ -35,7 +35,9 @@ var defaults = {
       }
     }]
   },
-  useBatch: false // use AWS Batch to process images
+  useBatch: false, // use AWS Batch to process images
+  dynamicTMS: false, // is a dynamic TMS available?
+  tmsPrefix: '' // dynamic TMS prefix
 };
 
 // Environment variable overrides
@@ -56,7 +58,9 @@ var environment = {
   gdriveKey: process.env.GDRIVE_KEY,
   jobDefinition: process.env.JOB_DEFINITION,
   jobQueue: process.env.JOB_QUEUE,
-  useBatch: process.env.USE_BATCH === 'true'
+  useBatch: process.env.USE_BATCH === 'true',
+  dynamicTMS: process.env.DYNAMIC_TMS === 'true',
+  tmsPrefix: process.env.TMS_PREFIX
 };
 
 var config = xtend(defaults);
