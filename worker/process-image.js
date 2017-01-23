@@ -22,7 +22,8 @@ module.exports = promisify(_processImage);
  * Fully process one URL.
  * Callback called with (err, { metadata, messages })
  */
-function _processImage (s3, scene, url, key, cb) {
+function _processImage (aws, scene, url, key, cb) {
+  var s3 = new aws.S3();
   var ext = pathTools.extname(url).toLowerCase();
   tmp.file({ postfix: ext }, function (err, path, fd, cleanupSource) {
     var callback = function (err, data) {
@@ -58,6 +59,8 @@ function _processImage (s3, scene, url, key, cb) {
       tmp.file({ postfix: '.tif' }, function (err, tifPath, fd, cleanupTif) {
         if (err) { return callback(err); }
 
+        // TODO shell into oam-dynamic-tiler's Docker image and use process.sh
+        // will need to communicate via volumes (which requires that the Docker daemon be local)
         translateImage(ext, path, tifPath, function (err, path) {
           callback = function (err, data) {
             cleanupSource();
@@ -164,8 +167,13 @@ function generateMetadata (scene, path, key, callback) {
       properties: {
         tms: scene.tms,
         sensor: scene.sensor
-      }
+      },
+      uploaded_at: new Date()
     };
+
+    if (config.dynamicTMS) {
+      metadata.properties.tms = config.tmsPrefix + key + '/{z}/{x}/{y}.png';
+    }
 
     gdalinfo.local(path, function (err, gdaldata) {
       if (err) { return callback(err); }

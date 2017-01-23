@@ -1,16 +1,20 @@
 var MongoClient = require('mongodb').MongoClient;
-var moment = require('moment');
 var Promise = require('es6-promise').Promise;
 var promisify = require('es6-promisify');
+var uuidV4 = require('uuid/v4');
 var processImage = require('./process-image');
 var log = require('./log');
 var config = require('../config');
 
+if (config.useBatch) {
+  processImage = require('./batch-image');
+}
+
 module.exports = JobQueue;
 
-function JobQueue (s3) {
-  if (!(this instanceof JobQueue)) { return new JobQueue(s3); }
-  this.s3 = s3;
+function JobQueue (aws) {
+  if (!(this instanceof JobQueue)) { return new JobQueue(aws); }
+  this.aws = aws;
 }
 
 JobQueue.prototype.run = function () {
@@ -98,9 +102,8 @@ JobQueue.prototype._mainloop = function mainloop () {
     }
 
     // we got a job!
-    var now = moment().format('YYYY-MM-DD');
     var image = result.value;
-    var s3 = this.s3;
+    var aws = this.aws;
     log(['info'], 'Processing job', image);
     return this.db.collection('uploads')
     // find the upload / scene that contains this image
@@ -108,19 +111,11 @@ JobQueue.prototype._mainloop = function mainloop () {
     .then(function (upload) {
       var found;
       upload.scenes.forEach(function (scene, i) {
-        scene.images.forEach(function (id, j) {
-          if (image._id.equals(id)) {
-            var filename = image.url.split('/').pop() || 'untitled';
-            var qmIndex = filename.indexOf('?');
-            if (qmIndex !== -1) {
-              filename = filename.substring(0, qmIndex);
-            }
-            filename = filename.replace(/[^a-zA-Z0-9 _\-\\.]/g, '').replace(/ /g, '-');
-            filename = ['scene', i, 'image', j, filename].join('-');
-            var key = ['uploads', now, upload._id, 'scene', i, filename].join('/');
-            // now that we have the scene, we can process the image
-            found = processImage(s3, scene, image.url, key);
-          }
+        scene.images.forEach(function (id) {
+          var key = [upload._id, i, uuidV4()].join('/');
+
+          // now that we have the scene, we can process the image
+          found = processImage(aws, scene, image.url, key);
         });
       });
 
@@ -129,7 +124,7 @@ JobQueue.prototype._mainloop = function mainloop () {
       throw new Error('Could not find the scene for image ' + image._id);
     })
     .then((processed) => {
-      // mark the job as finished
+      // mark the job as finished OR processing (depending on the processImage implementation)
       return this.images.findOneAndUpdate(result.value, this.update.jobFinished(processed));
     })
     .then(() => {

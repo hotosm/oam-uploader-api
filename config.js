@@ -34,7 +34,10 @@ var defaults = {
         log: '*'
       }
     }]
-  }
+  },
+  useBatch: false, // use AWS Batch to process images
+  dynamicTMS: false, // is a dynamic TMS available?
+  tmsPrefix: '' // dynamic TMS prefix
 };
 
 // Environment variable overrides
@@ -52,7 +55,12 @@ var environment = {
   sendgridApiKey: process.env.SENDGRID_API_KEY,
   sendgridFrom: process.env.SENDGRID_FROM,
   gdalTranslateBin: process.env.GDAL_TRANSLATE_BIN,
-  gdriveKey: process.env.GDRIVE_KEY
+  gdriveKey: process.env.GDRIVE_KEY,
+  jobDefinition: process.env.JOB_DEFINITION,
+  jobQueue: process.env.JOB_QUEUE,
+  useBatch: process.env.USE_BATCH === 'true',
+  dynamicTMS: process.env.DYNAMIC_TMS === 'true',
+  tmsPrefix: process.env.TMS_PREFIX
 };
 
 var config = xtend(defaults);
