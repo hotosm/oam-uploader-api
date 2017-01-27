@@ -117,7 +117,8 @@ JobQueue.prototype._mainloop = function mainloop () {
             }
             filename = filename.replace(/[^a-zA-Z0-9 _\-\\.]/g, '').replace(/ /g, '-');
             filename = ['scene', i, 'image', j, filename].join('-');
-            var key = ['uploads', now, upload._id, 'scene', i, filename].join('/');
+            var keyFilename = filename.replace(/\.[^/.]+$/, '.tif');
+            var key = ['uploads', now, upload._id, 'scene', i, keyFilename].join('/');
             // now that we have the scene, we can process the image
             found = processImage(s3, scene, image.url, key);
           }

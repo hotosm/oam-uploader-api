@@ -14,7 +14,9 @@ var sceneSchema = Joi.object().keys({
   acquisition_start: Joi.date().required(),
   acquisition_end: Joi.date().required(),
   tms: Joi.string().allow(null),
-  urls: Joi.array().items(Joi.string().uri({scheme: ['http', 'https', 'gdrive']}))
+  license: Joi.string().required(),
+  tags: Joi.string().allow(null),
+  urls: Joi.array().items(Joi.string().uri({scheme: ['http', 'https', 'gdrive', 'file']}))
     .min(1).required()
 });
 

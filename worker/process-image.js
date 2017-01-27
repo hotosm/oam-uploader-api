@@ -1,15 +1,14 @@
 'use strict';
 
 var fs = require('fs');
-var pathTools = require('path');
 var cp = require('child_process');
 var tmp = require('tmp');
 var promisify = require('es6-promisify');
 var request = require('request');
 var queue = require('queue-async');
 var gdalinfo = require('gdalinfo-json');
+var pathTools = require('path');
 var applyGdalinfo = require('oam-meta-generator/lib/apply-gdalinfo');
-var sharp = require('sharp');
 var log = require('./log');
 var config = require('../config');
 
@@ -39,11 +38,25 @@ function _processImage (s3, scene, url, key, cb) {
       url = `https://www.googleapis.com/drive/v3/files/${pieces[1]}?alt=media&key=${config.gdriveKey}`;
     }
 
-    log(['debug'], 'Downloading ' + url + ' to ' + path);
-
     var downloadStatus;
-    request(url)
-    .on('response', function (resp) { downloadStatus = resp.statusCode; })
+    var upload;
+    var stream;
+    var messages = [];
+
+    // Open local read stream if file was uploaded
+    if (url.substring(0, 7) === 'file://') {
+      upload = pathTools.join(__dirname, '../', 'uploads', url.replace('file://', ''));
+      log(['debug'], 'Transferring ' + upload + ' to ' + path);
+      stream = fs.createReadStream(upload);
+    } else {
+      // Open a download stream if file is remote
+      log(['debug'], 'Downloading ', url, ' to ', path);
+      stream = request(url);
+      stream.on('response', function (resp) { downloadStatus = resp.statusCode; });
+    }
+
+    // Write the stream
+    stream
     .on('error', callback)
     .pipe(fs.createWriteStream(path))
     .on('finish', function () {
@@ -51,8 +64,13 @@ function _processImage (s3, scene, url, key, cb) {
         return callback(new Error('Could not download ' + url +
          '; server responded with status code ' + downloadStatus));
       }
-
-      var messages = [];
+      // Cleanup local files if direct upload
+      if (url.substring(0, 7) === 'file://') {
+        log(['debug'], 'Cleaning up uploaded file: ', upload);
+        fs.unlink(upload, function (err) {
+          if (err) return callback(err);
+        });
+      }
 
       // we've successfully downloaded the file.  now do stuff with it.
       tmp.file({ postfix: '.tif' }, function (err, tifPath, fd, cleanupTif) {
@@ -69,7 +87,7 @@ function _processImage (s3, scene, url, key, cb) {
 
           generateMetadata(scene, path, key, function (err, metadata) {
             if (err) { return callback(err); }
-            makeThumbnail(path, function (thumbErr, thumbPath) {
+            makeThumbnail(path, metadata, function (thumbErr, thumbPath, metadata) {
               if (thumbErr) {
                 messages.push('Could not generate thumbnail: ' + thumbErr.message);
               }
@@ -132,8 +150,7 @@ function translateImage (ext, path, tifPath, callback) {
     '-co', 'PREDICTOR=2',
     '-co', 'SPARSE_OK=yes',
     '-co', 'BLOCKXSIZE=512',
-    '-co', 'BLOCKYSIZE=512',
-    '-co', 'NUM_THREADS=ALL_CPUS'
+    '-co', 'BLOCKYSIZE=512'
   ];
 
   cp.execFile(config.gdalTranslateBin, args, function (err, stdout, stderr) {
@@ -163,7 +180,9 @@ function generateMetadata (scene, path, key, callback) {
       contact: [scene.contact.name.replace(',', ';'), scene.contact.email].join(','),
       properties: {
         tms: scene.tms,
-        sensor: scene.sensor
+        sensor: scene.sensor,
+        license: scene.license,
+        tags: scene.tags
       }
     };
 
@@ -173,36 +192,49 @@ function generateMetadata (scene, path, key, callback) {
       // set uuid after doing applyGdalinfo because it actually sets it to
       // gdaldata.url, which for us is blank since we used gdalinfo.local
       metadata.uuid = publicUrl(s3bucket, key);
+      // temporarily attach width and height attributes to metadata
+      metadata.width = gdaldata.width;
+      metadata.height = gdaldata.height;
       log(['debug'], 'Generated metadata: ', metadata);
       callback(null, metadata);
     });
   });
 }
 
-function makeThumbnail (imagePath, callback) {
-  tmp.file({ postfix: '.png' }, function (err, path, fd) {
-    if (err) { return callback(err); }
-    log(['debug'], 'Generating thumbnail', path);
+function makeThumbnail (tifPath, metadata, callback) {
+  if (!config.gdalTranslateBin) {
+    throw new Error('GDAL bin path missing.');
+  }
 
-    var original = sharp(imagePath)
-      // upstream: https://github.com/lovell/sharp/issues/250
-      .limitInputPixels(2147483647)
-      .sequentialRead();
-    original
-    .metadata()
-    .then(function (metadata) {
-      var pixelArea = metadata.width * metadata.height;
-      var ratio = Math.sqrt(targetPixelArea / pixelArea);
-      log(['debug'], 'Generating thumbnail, targetPixelArea=' + targetPixelArea);
-      original
-      .resize(Math.round(ratio * metadata.width))
-      .toFile(path)
-      .then(function () {
-        log(['debug'], 'Finished generating thumbnail');
-        callback(null, path);
-      });
-    })
-    .catch(callback);
+  tmp.file({ postfix: '.thumb.png' }, function (err, thumbPath, fd) {
+    if (err) { return callback(err); }
+    log(['debug'], 'Generating thumbnail, targetPixelArea=' + targetPixelArea);
+
+    var pixelArea = metadata.width * metadata.height;
+    var ratio = Math.sqrt(targetPixelArea / pixelArea);
+    var width = Math.round(metadata.width * ratio).toString();
+    var height = Math.round(metadata.height * ratio).toString();
+
+    // remove temporary width and height attributes from metadata
+    delete metadata.width;
+    delete metadata.height;
+
+    var args = [
+      '-of', 'png',
+      tifPath, thumbPath,
+      '-b', '1',
+      '-b', '2',
+      '-b', '3',
+      '-outsize', width, height
+    ];
+
+    cp.execFile(config.gdalTranslateBin, args, function (err, stdout, stderr) {
+      if (err) {
+        return callback(err);
+      }
+      log(['debug'], 'Finished generating thumbnail');
+      return callback(null, thumbPath, metadata);
+    });
   });
 }
 
