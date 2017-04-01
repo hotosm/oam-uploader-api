@@ -9,7 +9,7 @@ var defaults = {
   adminPassword: null, // the administrator username
   adminUsername: null, // the administrator password
   oinBucket: 'oam-uploader', // name of the OpenImageryNetwork bucket to which imagery should be uploaded
-  awsRegion: 'us-west-2', // the AWS region of the oinBucket
+  uploadBucket: 'oam-uploader-temp', // name of the bucket for temporary storage for direct uploads
   thumbnailSize: 300, // (very) approximate thumbnail size, in kilobytes
   maxWorkers: 1, // the maximum number of workers
   sendgridApiKey: null, // sendgrid API key, for sending notification emails
@@ -21,6 +21,7 @@ var defaults = {
       'processed. You can check on the status of the upload at ' +
       'http://upload.openaerialmap.org/#/status/{UPLOAD_ID}.'
   },
+  cookiePassword: '3b296ce42ec560abeabaef',
   logOptions: {
     opsInterval: 3000,
     reporters: [{
@@ -33,7 +34,8 @@ var defaults = {
         log: '*'
       }
     }]
-  }
+  },
+  tilerBaseUrl: 'http://tiles.openaerialmap.org'
 };
 
 // Environment variable overrides
@@ -41,16 +43,16 @@ var environment = {
   port: process.env.PORT,
   host: process.env.HOST,
   oinBucket: process.env.OIN_BUCKET,
+  uploadBucket: process.env.UPLOAD_BUCKET,
   dbUri: process.env.NODE_ENV === 'test' ? process.env.DBURI_TEST : process.env.DBURI,
   maxWorkers: process.env.MAX_WORKERS,
   adminPassword: process.env.ADMIN_PASSWORD,
   adminUsername: process.env.ADMIN_USERNAME,
-  awsKeyId: process.env.AWS_SECRET_KEY_ID,
-  awsAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  awsRegion: process.env.AWS_REGION,
   sendgridApiKey: process.env.SENDGRID_API_KEY,
   sendgridFrom: process.env.SENDGRID_FROM,
-  gdriveKey: process.env.GDRIVE_KEY
+  gdriveKey: process.env.GDRIVE_KEY,
+  tilerBaseUrl: process.env.TILER_BASE_URL,
+  cookiePassword: process.env.COOKIE_PASSWORD
 };
 
 var config = xtend(defaults);

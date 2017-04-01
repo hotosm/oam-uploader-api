@@ -1,6 +1,21 @@
-# OAM Uploader API [![Build Status](https://travis-ci.org/hotosm/oam-uploader-api.svg)](https://travis-ci.org/hotosm/oam-uploader-api) 
+<h1 align="center">OAM Uploader API
+  <a href="https://travis-ci.org/hotosm/oam-uploader-api">
+    <img src="https://travis-ci.org/hotosm/oam-uploader-api.svg" alt="Build Status"></img>
+  </a></h1>
 
-## [API Docs](http://hotosm.github.io/oam-uploader-api/)
+<div align="center">
+  <h3>
+  <a href="https://docs.openaerialmap.org/ecosystem/getting-started/">Ecosystem</a>
+  <span> | </span>
+  <a href="http://hotosm.github.io/oam-uploader-api/">API Docs</a>
+  <span> | </span>
+  <a href="https://github.com/hotosm/oam-uploader">Uploader Interface</a>
+  <span> | </span>
+  <a href="https://github.com/hotosm/oam-uploader-admin">Token Manager</a>
+  </h3>
+</div>
+
+The Uploader API powers the [Uploader Interface](https://github.com/hotosm/oam-uploader) by issuing authentication tokens and receiving imagery uploads. Before proceeding, we suggest you read the ecosystem docs.
 
 ## Installation and Usage
 
@@ -9,35 +24,98 @@ The steps below will walk you through setting up your own instance of the oam-up
 ### Install Project Dependencies
 
 - [MongoDB](https://www.mongodb.org/)
-- [Node.js](https://nodejs.org/)
-- [libvips](https://github.com/jcupitt/libvips)
+- [Node.js](https://nodejs.org/) v0.12
+
+Using [homebrew](http://brew.sh/), you can install MongoDB and other dependencies:
+
+    $ brew bundle
 
 ### Install Application Dependencies
 
-    $ npm install
+If you use [`nvm`](https://github.com/creationix/nvm), activate the desired Node version:
+
+```
+nvm install
+```
+
+Install Node modules:
+
+```
+npm install
+```
 
 ### Usage
+You need to set environment variables before starting the API. We suggest you copy `local.sample.env` to `local.env` and modify it. Before starting the API you can run `source local.env` to export the environment variables to the shell.
+
+#### Environment Variables
+
+- `NODE_ENV` - Node environment. When in production should be set to `production`, otherwise can be ignored.
+- `PORT` - The port to listen on (Default to 4000).
+- `HOST` - The hostname or ip address (Default to 0.0.0.0).
+- `COOKIE_PASSWORD` - Password used for cookie encoding. Should be at least 32 characters long. IMPORTANT to change the default one for production.
+- `AWS_ACCESS_KEY_ID` - AWS secret key id for reading `OIN_BUCKET`.
+- `AWS_SECRET_ACCESS_KEY` - AWS secret access key for reading `OIN_BUCKET`.
+- `AWS_REGION` - AWS region of `OIN_BUCKET` (Default to us-west-2).
+- `SENDGRID_API_KEY` - Sendgrid API key, for sending notification emails.
+- `SENDGRID_FROM` - Email address from which to send notification emails (Default to info@hotosm.org).
+- `OIN_BUCKET` - The OIN bucket that will receive the uploads (Default to oam-uploader).
+- `DBURI` - MongoDB connection url (Default to mongodb://localhost/oam-uploader)
+- `DBURI_TEST` - MongoDB connection url for tests. Will be loaded when `NODE_ENV` is `test`. It's not needed for production. (Default to mongodb://localhost/oam-uploader-test)
+- `ADMIN_USERNAME` - Username to access the [Token Management](https://github.com/hotosm/oam-uploader-admin) panel.
+- `ADMIN_PASSWORD` - Password to access the [Token Management](https://github.com/hotosm/oam-uploader-admin) panel.
+- `GDRIVE_KEY` - Google Api key. Needed to use the upload from google drive functionality.
+- `GDAL_TRANSLATE_BIN` - Full path to the gdal bin (Default to /usr/bin/gdal_translate)
+- `MAX_WORKERS` - Max number of workers used to process the uploads (Default to 1)
+- `NEW_RELIC_LICENSE_KEY` - New relic license key.
+- `TILER_BASE_URL` - Base URL for dynamic TMS/WMTS endpoints. Defaults to `http://tiles.openaerialmap.org`.
+
+For a quick local setup for development the following variables can be omitted: `SENDGRID_API_KEY`, `SENDGRID_FROM`, `GDRIVE_KEY`, `NEW_RELIC_LICENSE_KEY`. Be aware that although the system will work some functionalities will not be available and errors may be triggered.
+
+#### Starting the database
+
+```
+mongod
+```
 
 #### Starting the API:
 
-    $ node index.js
+```
+npm start
+```
 
 The API exposes endpoints used to access information form the system via a RESTful interface.
 
-### Environment Variables
+### Tokens
+The uploader endpoints are protected via a token authentication system.
+Tokens are issued using the [oam-uploader-admin](https://github.com/hotosm/oam-uploader-admin), a friendly user interface for token management. Follow the [instructions](https://github.com/hotosm/oam-uploader-admin) to set it up. To understand better how all the components interact refer to the [Ecosystem Docs](https://docs.openaerialmap.org/ecosystem/getting-started/).
 
-- `PORT` - the port to listen on
-- `OIN_BUCKET` - The OIN bucket that will receive the uploads
-- `AWS_REGION` - AWS region of OIN_BUCKET
-- `AWS_SECRET_KEY_ID` - AWS secret key id for reading OIN bucket
-- `AWS_SECRET_ACCESS_KEY` - AWS secret access key for reading OIN bucket
-- `ADMIN_USERNAME` - Token management Admin username
-- `ADMIN_PASSWORD` - Token management Admin password
-- `DBURI` - MongoDB connection url
-- `DBURI_TEST` - MongoDB connection to the test database (not needed for
-  production)
-- `SENDGRID_API_KEY` - sendgrid API key, for sending notification emails
-- `SENDGRID_FROM` - email address from which to send notification emails
+#### Populate the database
+
+To get the API running quickly, you can skip running the admin interface and populate the database with a test token. 
+
+```
+mongo
+use oam-uploader
+db.tokens.insert(
+  {
+    "name" : "admin",
+    "expiration" : false,
+    "status" : "active",
+    "token" : "MYTESTTOKEN",
+    "created" : ISODate("2016-12-15T17:28:19.823Z"),
+    "updated" : null
+  }
+)
+```
+
+### Documentation
+The documentation for the different endpoints can be generated by running:
+```
+npm run docs
+```
+This will compile the documentation and place it inside `docs`. The docs site can then be run by any web server.
+
+The documentation is also automatically built and deployed by [Travis CI](https://travis-ci.org/) whenever a Pull Request is merged to the production branch (in this case `master`). The deployment is done to `gh-pages`.
 
 ### Install via Docker
 
@@ -45,7 +123,6 @@ Alternatively, if you've got a mongo instance running elsewhere, install and
 run on a fresh instance using docker as follows:
 
 [Install Docker](https://docs.docker.com/installation/)
-
 
 One-time setup:
 
@@ -55,7 +132,7 @@ git clone https://github.com/hotosm/oam-uploader-api
 
 # build the docker image
 cd oam-uploader-api
-docker build -t oam-uploader-api .build_scripts/docker
+docker build -t oam-uploader-api .
 
 # set up environment vars:
 cp local.sample.env local.env
@@ -103,4 +180,5 @@ deploy your local branch.
 
 ## License
 Oam Uploader Api is licensed under **BSD 3-Clause License**, see the [LICENSE](LICENSE) file for more details.
+
 
