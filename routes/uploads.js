@@ -87,7 +87,6 @@ module.exports = [
     * @apiParam {Object} payload Parameters sent as object resolvable from request.payload
     * @apiParam {string} payload.name The name of the file to be uploaded
     * @apiParam {string} payload.type The content type of the file to be uploaded
-    * @apiUse uploadUrlStatusSuccess
     */
   {
     method: 'POST',
